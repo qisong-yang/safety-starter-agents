@@ -1,92 +1,49 @@
-**Status:** Archive (code is provided as-is, no updates expected)
+# Safety Transfer Learning via Maximum Entropy Exploration 
 
-# Safety Starter Agents
-
-A companion repo to the paper "Benchmarking Safe Exploration in Deep Reinforcement Learning," containing a variety of unconstrained and constrained RL algorithms.
-
-This repo contains the implementations of PPO, TRPO, PPO-Lagrangian, TRPO-Lagrangian, and CPO used to obtain the results in the "Benchmarking Safe Exploration" paper, as well as experimental implementations of SAC and SAC-Lagrangian not used in the paper.
-
-Note that the PPO implementations here follow the convention from [Spinning Up](https://spinningup.openai.com) rather than [Baselines](https://www.github.com/openai/baselines): they use the early stopping trick, omit observation and reward normalization, and do not use the clipped value loss, among other potential diffs. As a result, while it is easy to fairly compare this PPO to this TRPO, it is not the strongest PPO implementation (in the sense of sample efficiency) and can be improved on substantially.
-
-## Supported Platforms
-
-This package has been tested on Mac OS Mojave and Ubuntu 16.04 LTS, and is probably fine for most recent Mac and Linux operating systems. 
-
-Requires **Python 3.6 or greater.**  
+To use the code for safe transfer learning, you need to install the updated [Safety Gym](https://github.com/qisong-yang/safety-gym). 
 
 ## Installation
 
 To install this package:
 
 ```
-git clone https://github.com/openai/safety-starter-agents.git
+git clone https://github.com/qisong-yang/safety-starter-agents.git
 
 cd safety-starter-agents
 
 pip install -e .
 ```
 
-**Warning:** Installing this package does **not** install Safety Gym. If you want to use the algorithms in this package to train agents on onstrained RL environments, make sure to install Safety Gym according to the instructions on the [Safety Gym repo](https://www.github.com/openai/safety-gym).
+## Train a safe explorer
 
-
-## Getting Started
-
-**Example Script:** To run PPO-Lagrangian on the `Safexp-PointGoal1-v0` environment from Safety Gym, using neural networks of size (64,64):
-
+To get the safe explorer in a safety-constrained environment without reward signals, run :
 ```
-from safe_rl import ppo_lagrangian
-import gym, safety_gym
+cd /path/to/transfer
 
-ppo_lagrangian(
-	env_fn = lambda : gym.make('Safexp-PointGoal1-v0'),
-	ac_kwargs = dict(hidden_sizes=(64,64))
-	)
-
+python saclag-maxent.py --logger_kwargs_str '{"output_dir": "./SafeExplorer"}'
 ```
 
+### Transfer to a new task
 
-**Reproduce Experiments from Paper:** To reproduce an experiment from the paper, run:
+The similarity between the teacher policy and the student policy is taken as a bonus `r'` during learning. Then, we get a new reward `r = r + αr'`
 
+If `α` is fixed, run: 
 ```
-cd /path/to/safety-starter-agents/scripts
-python experiment.py --algo ALGO --task TASK --robot ROBOT --seed SEED 
-	--exp_name EXP_NAME --cpu CPU
-```
+cd path/to/transfer
 
-where 
-
-* `ALGO` is in `['ppo', 'ppo_lagrangian', 'trpo', 'trpo_lagrangian', 'cpo']`.
-* `TASK` is in `['goal1', 'goal2', 'button1', 'button2', 'push1', 'push2']` .
-* `ROBOT` is in `['point', 'car', 'doggo']`.
-* `SEED` is an integer. In the paper experiments, we used seeds of 0, 10, and 20, but results may not reproduce perfectly deterministically across machines.
-* `CPU` is an integer for how many CPUs to parallelize across.
-
-`EXP_NAME` is an optional argument for the name of the folder where results will be saved. The save folder will be placed in `/path/to/safety-starter-agents/data`. 
-
-
-**Plot Results:** Plot results with:
-
-```
-cd /path/to/safety-starter-agents/scripts
-python plot.py data/path/to/experiment
+python saclag-trans-fix.py  /path/to/SafeExplorer --logger_kwargs_str '{"output_dir": "./xxx"}'
 ```
 
-**Watch Trained Policies:** Test policies with:
-
+If `α` decreases following a decay rate, run: 
 ```
-cd /path/to/safety-starter-agents/scripts
-python test_policy.py data/path/to/experiment
+cd path/to/transfer
+
+python saclag-trans-dr.py  /path/to/SafeExplorer --logger_kwargs_str '{"output_dir": "./xxx"}'
 ```
 
-
-## Cite the Paper
-
-If you use Safety Starter Agents code in your paper, please cite:
-
+If `α` is adaptive based on the safety performance, run: 
 ```
-@article{Ray2019,
-    author = {Ray, Alex and Achiam, Joshua and Amodei, Dario},
-    title = {{Benchmarking Safe Exploration in Deep Reinforcement Learning}},
-    year = {2019}
-}
+cd path/to/transfer
+
+python saclag-trans-ada.py  /path/to/SafeExplorer --logger_kwargs_str '{"output_dir": "./xxx"}'
 ```
